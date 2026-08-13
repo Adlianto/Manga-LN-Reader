@@ -10,7 +10,7 @@ function showCustomConfirm(title, message, callback) {
 
   const overlay = document.getElementById("confirmModalOverlay");
   if (overlay) overlay.style.display = "flex";
-  if (window.lucide) lucide.createIcons();
+  if (window.lucide) lucide.git createIcons();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
