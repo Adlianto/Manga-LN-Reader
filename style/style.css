@@ -1,0 +1,29 @@
+.epub-text {
+  background-color: #121214;
+  padding: 32px;
+  border-radius: 12px;
+  color: #E4E4E7;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  line-height: 1.85;
+  font-size: 1.05rem;
+}
+
+.epub-text p {
+  margin-bottom: 18px;
+  text-align: justify;
+}
+
+.epub-text h1, .epub-text h2, .epub-text h3 {
+  font-weight: 700;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  color: #8B5CF6;
+}
+
+.manga-img {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 8px auto;
+  display: block;
+  border-radius: 6px;
+}
