@@ -288,13 +288,13 @@
     <script defer src="js/ui.js"></script>
     <script defer src="js/app.js"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/book/sw.js')
-            .then(reg => console.log('Service Worker terdaftar!', reg))
-            .catch(err => console.log('Gagal daftar SW:', err));
-        });
-      }
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+              navigator.serviceWorker.register('/Manga-LN-Reader/sw.js')
+                .then(reg => console.log('Service Worker terdaftar!', reg))
+                .catch(err => console.log('Gagal daftar SW:', err));
+            });
+          }
     </script>
 </body>
 
