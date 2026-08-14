@@ -8,12 +8,12 @@
   "theme_color": "#171717",
   "icons": [
     {
-      "src": "/book/assets/icon-192.png",
+      "src": "/Manga-LN-Reader/assets/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/book/assets/icon-512.png",
+      "src": "/Manga-LN-Reader/assets/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
