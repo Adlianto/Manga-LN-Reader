@@ -1,12 +1,18 @@
 const API_URL = "api/api.php";
-async function getAllSeriesFromDB() {
+let seriesCache = null;
+
+async function getAllSeriesFromDB(forceRefresh = false) {
+  if (seriesCache && !forceRefresh) {
+    return seriesCache;
+  }
   try {
     const response = await fetch(`${API_URL}?action=get_all`);
     const data = await response.json();
-    return data || [];
+    seriesCache = data || [];
+    return seriesCache;
   } catch (err) {
     console.error("Gagal mengambil data dari API:", err);
-    return [];
+    return seriesCache || [];
   }
 }
 
@@ -19,10 +25,7 @@ async function saveSeriesToDB(title, type, coverFile, chapterFiles = []) {
   const formData = new FormData();
   formData.append("title", title);
   formData.append("type", type);
-
-  if (coverFile) {
-    formData.append("cover", coverFile);
-  }
+  if (coverFile) formData.append("cover", coverFile);
 
   if (chapterFiles && chapterFiles.length > 0) {
     for (let i = 0; i < chapterFiles.length; i++) {
@@ -35,7 +38,9 @@ async function saveSeriesToDB(title, type, coverFile, chapterFiles = []) {
       method: "POST",
       body: formData,
     });
-    return await response.json();
+    const res = await response.json();
+    await getAllSeriesFromDB(true);
+    return res;
   } catch (err) {
     console.error("Gagal membuat seri baru:", err);
   }
@@ -53,7 +58,9 @@ async function editSeriesDB(seriesId, title, type, coverFile) {
       method: "POST",
       body: formData,
     });
-    return await response.json();
+    const res = await response.json();
+    await getAllSeriesFromDB(true);
+    return res;
   } catch (err) {
     console.error("Gagal mengedit seri:", err);
   }
@@ -68,7 +75,9 @@ async function deleteSeriesDB(seriesId) {
       method: "POST",
       body: formData,
     });
-    return await response.json();
+    const res = await response.json();
+    await getAllSeriesFromDB(true);
+    return res;
   } catch (err) {
     console.error("Gagal menghapus seri:", err);
   }
@@ -87,7 +96,9 @@ async function uploadChaptersToDB(seriesId, files) {
       method: "POST",
       body: formData,
     });
-    return await response.json();
+    const res = await response.json();
+    await getAllSeriesFromDB(true);
+    return res;
   } catch (err) {
     console.error("Gagal upload chapter:", err);
   }
@@ -103,21 +114,23 @@ async function deleteChapterDB(seriesId, chapterName) {
       method: "POST",
       body: formData,
     });
-    return await response.json();
+    const res = await response.json();
+    await getAllSeriesFromDB(true);
+    return res;
   } catch (err) {
     console.error("Gagal menghapus chapter:", err);
   }
 }
 
-function saveToHistory(seriesTitle, chapterName, seriesType, fileUrl) {
+function saveToHistory(seriesId, seriesTitle, chapterName, seriesType, fileUrl) {
   let history = JSON.parse(localStorage.getItem("readHistory") || "[]");
 
   history = history.filter(
-    (item) =>
-      !(item.seriesTitle === seriesTitle && item.chapterName === chapterName),
+    (item) => !(item.seriesId === seriesId && item.chapterName === chapterName)
   );
 
   history.unshift({
+    seriesId,
     seriesTitle,
     chapterName,
     seriesType,

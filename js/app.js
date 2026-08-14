@@ -2,9 +2,13 @@ let currentSeriesId = null;
 let currentSeriesObj = null;
 let currentChapterIndex = 0;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  renderHome();
+document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => renderHome());
+  } else {
+    setTimeout(renderHome, 0);
+  }
 });
 
 function setupEventListeners() {
@@ -183,14 +187,13 @@ async function openDetail(seriesId) {
 }
 
 async function readChapter(series, chapterIndex) {
-  if (!series || !series.chapters || !series.chapters[chapterIndex]) {
+  if (!series?.chapters?.[chapterIndex]) {
     console.error("Invalid chapter data:", series, chapterIndex);
     return;
   }
 
   currentSeriesObj = series;
   currentChapterIndex = chapterIndex;
-
   const chapter = series.chapters[chapterIndex];
 
   switchView('reader');
@@ -214,46 +217,42 @@ async function readChapter(series, chapterIndex) {
   }
 
   const viewer = document.getElementById('viewer');
-  viewer.innerHTML = '<p style="text-align:center; color:#888;">Loading...</p>';
-
+  cleanViewerMemory();
+  viewer.innerHTML = '<p class="text-center text-mono-light/50 py-12">Loading content...</p>';
   window.scrollTo(0, 0);
 
-try {
-    // 🌟 Ganti jadi encodeURIComponent atau pastikan path-nya aman
-    const fileUrl = chapter.fileUrl; // atau encodeURIComponent tergantung struktur database kamu
+  try {
     const response = await fetch(chapter.fileUrl);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP Status: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`HTTP Status: ${response.status}`);
 
     const fileBuffer = await response.arrayBuffer();
 
     if (series.type === 'Manga') {
       const images = await parseMangaContent(fileBuffer);
-      viewer.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+
       images.forEach(img => {
         const imgEl = document.createElement('img');
         imgEl.src = img.url;
-        imgEl.className = 'manga-img';
-        viewer.appendChild(imgEl);
+        imgEl.className = 'manga-img w-full max-w-2xl mx-auto block mb-2 rounded-lg';
+        imgEl.loading = 'lazy';
+        imgEl.decoding = 'async';
+        fragment.appendChild(imgEl);
       });
+
+      viewer.innerHTML = '';
+      viewer.appendChild(fragment);
     } else {
       const chaptersHtml = await parseEpubContent(fileBuffer);
-      viewer.innerHTML = '';
       const container = document.createElement('div');
-      container.className = 'epub-text';
+      container.className = 'epub-text prose prose-invert max-w-2xl mx-auto px-4 py-6 leading-relaxed';
+      container.innerHTML = chaptersHtml.join('<hr class="my-8 border-mono-dark/40" />');
 
-      chaptersHtml.forEach(htmlStr => {
-        const div = document.createElement('div');
-        div.innerHTML = htmlStr;
-        container.appendChild(div);
-      });
-
+      viewer.innerHTML = '';
       viewer.appendChild(container);
     }
   } catch (err) {
     console.error("Reader Error:", err);
-    viewer.innerHTML = `<p style="text-align:center; color:red;">❌ Failed to read file from storage.<br><small style="color:#aaa;">${err.message}</small></p>`;
+    viewer.innerHTML = `<p class="text-center text-red-400 py-12">Failed to load file.<br><small class="text-mono-light/40">${err.message}</small></p>`;
   }
 }

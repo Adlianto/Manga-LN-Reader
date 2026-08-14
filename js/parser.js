@@ -1,36 +1,60 @@
+let jszipLoadedPromise = null;
+
+function ensureJSZip() {
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  if (!jszipLoadedPromise) {
+    jszipLoadedPromise = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "js/jszip.min.js";
+      s.onload = () => resolve(window.JSZip);
+      s.onerror = (err) => {
+        jszipLoadedPromise = null;
+        reject(err);
+      };
+      document.body.appendChild(s);
+    });
+  }
+  return jszipLoadedPromise;
+}
+
+const IMAGE_EXT_REGEX = /\.(jpg|jpeg|png|webp)$/i;
+const EPUB_TEXT_REGEX = /\.(html|xhtml)$/i;
+
 async function parseMangaContent(fileBuffer) {
+  await ensureJSZip();
   const zip = new JSZip();
   const contents = await zip.loadAsync(fileBuffer);
-  const imagePromises = [];
+  const imageEntries = [];
 
   contents.forEach((relativePath, zipEntry) => {
-    if (!zipEntry.dir && relativePath.match(/\.(jpg|jpeg|png|webp)$/i)) {
-      imagePromises.push(
-        zipEntry.async("blob").then((blob) => ({
-          name: relativePath,
-          url: URL.createObjectURL(blob),
-        })),
-      );
+    if (!zipEntry.dir && IMAGE_EXT_REGEX.test(relativePath)) {
+      imageEntries.push({ name: relativePath, entry: zipEntry });
     }
   });
 
-  const images = await Promise.all(imagePromises);
-  images.sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    }),
+  imageEntries.sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
   );
-  return images;
+
+  return Promise.all(
+    imageEntries.map(async (item) => {
+      const blob = await item.entry.async("blob");
+      return {
+        name: item.name,
+        url: URL.createObjectURL(blob)
+      };
+    })
+  );
 }
 
 async function parseEpubContent(fileBuffer) {
+  await ensureJSZip();
   const zip = new JSZip();
   const contents = await zip.loadAsync(fileBuffer);
   const htmlFiles = [];
 
   contents.forEach((relativePath, zipEntry) => {
-    if (!zipEntry.dir && relativePath.match(/\.(html|xhtml)$/i)) {
+    if (!zipEntry.dir && EPUB_TEXT_REGEX.test(relativePath)) {
       if (!relativePath.includes("toc") && !relativePath.includes("nav")) {
         htmlFiles.push(zipEntry);
       }
@@ -38,20 +62,15 @@ async function parseEpubContent(fileBuffer) {
   });
 
   htmlFiles.sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    }),
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
   );
 
-  const chaptersHtml = [];
-  for (const zipEntry of htmlFiles) {
-    const textHTML = await zipEntry.async("string");
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(textHTML, "text/html");
-    const bodyContent = doc.body ? doc.body.innerHTML : textHTML;
-    chaptersHtml.push(bodyContent);
-  }
-
-  return chaptersHtml;
+  const parser = new DOMParser();
+  return Promise.all(
+    htmlFiles.map(async (zipEntry) => {
+      const textHTML = await zipEntry.async("string");
+      const doc = parser.parseFromString(textHTML, "text/html");
+      return doc.body ? doc.body.innerHTML : textHTML;
+    })
+  );
 }
