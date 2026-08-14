@@ -1,7 +1,8 @@
-const CACHE_NAME = "bell-reader-v2";
+const CACHE_NAME = "app-cache-v2.0";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
+  "./sw.js",
   "./style/output.css",
   "./js/lucide.min.js",
   "./js/db.js",
